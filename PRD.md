@@ -555,7 +555,11 @@ Filters:
 - Scope
 - Region
 
-Vendor dropdown must be populated from cache metadata, not hard-coded.
+Filter dropdowns must be populated from cache metadata, not hard-coded. Region
+options are derived from **availability** regions only (the regions actually
+scanned via `AZURE_LOCATIONS`), never from pricing: Azure Retail prices are
+published for far more regions than a model is deployable in, so unioning
+pricing regions would offer regions no model is available in.
 
 The generic filters are necessary but not sufficient for the target decision workflows. The app should also provide a compact **Decision helper** area with three modes:
 
@@ -766,7 +770,7 @@ Expected partial-failure behavior:
 
 ## 13. Configuration
 
-Supported `.env` variables:
+Supported env variables (loaded from `.env.local`, then `.env`):
 
 ```text
 PORT=3000
@@ -783,7 +787,7 @@ AZURE_ML_REGISTRIES=azureml,azureml-meta,azureml-mistral
 
 Rules:
 
-- `.env` is local and ignored by git.
+- Local env files are read at startup in precedence order **real process env > `.env.local` > `.env`** (first assignment wins); both files are local and ignored by git.
 - Never hard-code user project, resource group, subscription, or tenant IDs.
 - Missing optional settings should degrade gracefully and record status messages.
 
@@ -846,7 +850,8 @@ Keep data-source logic separated from UI/server routing so future changes to Fou
 
 - Search does not lag on non-Hugging-Face cache.
 - Filters combine correctly.
-- Region filter matches availability/pricing regions.
+- Region filter matches a model's **availability** regions only (not pricing
+  regions); the Region dropdown lists only those availability regions.
 - Vendor filter is case-insensitive.
 
 ### Decision workflows
