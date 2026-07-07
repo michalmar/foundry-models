@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Azure AI Foundry Model Browser</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="app-title">
+        <h1>Azure AI Foundry Model Browser</h1>
+        <p class="subtitle">
+          Browse the cached Foundry catalog, regional availability, and Azure
+          Retail pricing. Heavy fetching happens only on Refresh.
+        </p>
+      </div>
+      <div class="refresh-controls">
+        <label class="hf-toggle">
+          <input type="checkbox" id="includeHuggingFace" />
+          Include Hugging Face models
+        </label>
+        <button id="refreshButton" type="button">Refresh data</button>
+        <span id="refreshStatus" class="refresh-status" role="status"></span>
+      </div>
+    </header>
+
+    <section id="statusPanel" class="status-panel" aria-live="polite"></section>
+
+    <section class="toolbar" aria-label="Filters and view options">
+      <div class="filters">
+        <label class="field">
+          <span>Search model</span>
+          <input type="search" id="filterSearch" placeholder="name, vendor, region, SKU…" />
+        </label>
+        <label class="field">
+          <span>Category</span>
+          <select id="filterCategory"><option value="">All</option></select>
+        </label>
+        <label class="field">
+          <span>Vendor / model lab</span>
+          <select id="filterVendor"><option value="">All</option></select>
+        </label>
+        <label class="field">
+          <span>Deployment type</span>
+          <select id="filterDeployment"><option value="">All</option></select>
+        </label>
+        <label class="field">
+          <span>Scope</span>
+          <select id="filterScope"><option value="">All</option></select>
+        </label>
+        <label class="field">
+          <span>Region</span>
+          <select id="filterRegion"><option value="">All</option></select>
+        </label>
+        <button id="clearFilters" type="button" class="link-button">Clear filters</button>
+      </div>
+
+      <div class="view-switch" role="radiogroup" aria-label="View mode">
+        <label class="view-option" title="Grid view">
+          <input type="radio" name="viewMode" value="grid" checked />
+          <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+            <rect x="2" y="2" width="6" height="6" rx="1" />
+            <rect x="12" y="2" width="6" height="6" rx="1" />
+            <rect x="2" y="12" width="6" height="6" rx="1" />
+            <rect x="12" y="12" width="6" height="6" rx="1" />
+          </svg>
+          <span class="sr-only">Grid</span>
+        </label>
+        <label class="view-option" title="List view">
+          <input type="radio" name="viewMode" value="list" />
+          <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+            <rect x="2" y="3" width="16" height="2.5" rx="1" />
+            <rect x="2" y="8.75" width="16" height="2.5" rx="1" />
+            <rect x="2" y="14.5" width="16" height="2.5" rx="1" />
+          </svg>
+          <span class="sr-only">List</span>
+        </label>
+      </div>
+    </section>
+
+    <details id="decisionHelper" class="decision-helper">
+      <summary>Decision helper</summary>
+      <div class="decision-modes" role="tablist" aria-label="Decision modes">
+        <button type="button" class="mode-tab is-active" data-mode="availability">
+          Model availability
+        </button>
+        <button type="button" class="mode-tab" data-mode="region">Region inventory</button>
+        <button type="button" class="mode-tab" data-mode="best">Best region for models</button>
+      </div>
+
+      <div class="decision-panel" data-panel="availability">
+        <div class="decision-inputs">
+          <label class="field">
+            <span>Model</span>
+            <input type="text" id="daModel" list="modelNameList" placeholder="e.g. Mistral-large" />
+          </label>
+          <label class="field">
+            <span>Scope</span>
+            <select id="daScope">
+              <option value="">All</option>
+              <option value="eu">Data Zone EU</option>
+              <option value="us">Data Zone US</option>
+              <option value="data-zone">Data zone (any)</option>
+              <option value="global">Global</option>
+              <option value="regional">Regional</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Deployment type</span>
+            <select id="daDeployment"><option value="">All</option></select>
+          </label>
+          <label class="field">
+            <span>Route / category</span>
+            <select id="daRoute">
+              <option value="">All</option>
+              <option value="direct">Direct</option>
+              <option value="managed-vm">Managed VM</option>
+              <option value="marketplace">Marketplace</option>
+            </select>
+          </label>
+          <button type="button" id="daRun">Find regions</button>
+        </div>
+        <div id="daOutput" class="decision-output"></div>
+      </div>
+
+      <div class="decision-panel is-hidden" data-panel="region">
+        <div class="decision-inputs">
+          <label class="field">
+            <span>Foundry region</span>
+            <input type="text" id="riRegion" list="regionList" placeholder="e.g. swedencentral" />
+          </label>
+          <label class="field">
+            <span>Vendor</span>
+            <select id="riVendor"><option value="">All</option></select>
+          </label>
+          <label class="field">
+            <span>Category</span>
+            <select id="riCategory"><option value="">All</option></select>
+          </label>
+          <label class="field">
+            <span>Deployment type</span>
+            <select id="riDeployment"><option value="">All</option></select>
+          </label>
+          <label class="field">
+            <span>Scope</span>
+            <select id="riScope"><option value="">All</option></select>
+          </label>
+          <button type="button" id="riRun">Show inventory</button>
+        </div>
+        <div id="riOutput" class="decision-output"></div>
+      </div>
+
+      <div class="decision-panel is-hidden" data-panel="best">
+        <div class="decision-inputs">
+          <label class="field field-wide">
+            <span>Required models (comma or newline separated)</span>
+            <textarea id="brModels" rows="3" placeholder="Mistral-large&#10;DeepSeek-R1&#10;Phi-4"></textarea>
+          </label>
+          <label class="field">
+            <span>Required scope</span>
+            <select id="brScope">
+              <option value="">Any</option>
+              <option value="eu">Data Zone EU</option>
+              <option value="us">Data Zone US</option>
+              <option value="data-zone">Data zone (any)</option>
+              <option value="global">Global</option>
+              <option value="regional">Regional</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Required deployment type</span>
+            <select id="brDeployment"><option value="">Any</option></select>
+          </label>
+          <label class="field">
+            <span>Allowed regions (optional)</span>
+            <input type="text" id="brAllowed" placeholder="eastus, swedencentral" />
+          </label>
+          <label class="field">
+            <span>Preferred order (optional)</span>
+            <input type="text" id="brPreferred" placeholder="swedencentral, westeurope" />
+          </label>
+          <button type="button" id="brRun">Rank regions</button>
+        </div>
+        <div id="brOutput" class="decision-output"></div>
+      </div>
+    </details>
+
+    <section id="summary" class="summary" aria-live="polite"></section>
+
+    <main id="results" class="results"></main>
+
+    <nav id="pagination" class="pagination" aria-label="Pagination"></nav>
+
+    <datalist id="modelNameList"></datalist>
+    <datalist id="regionList"></datalist>
+
+    <script src="app.js"></script>
+  </body>
+</html>

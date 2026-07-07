@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Local environment / secrets
+.env
+.env.local
+
+# Local session scratch notes (may contain subscription/tenant IDs)
+SESSION.md
+
+# Local disk cache (regenerated via Refresh data)
+data/cache.json
+
+# Logs / OS noise
+*.log
+.DS_Store
